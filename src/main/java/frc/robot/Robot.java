@@ -17,9 +17,14 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+
+
 //import com.ctre.phoenix.motorcontrol.ControlMode;
 //import com.ctre.phoenix.motorcontrol.DemandType;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.shuffleboard.*;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 //import edu.wpi.first.wpilibj.Solenoid;
 
@@ -94,6 +99,16 @@ public class Robot extends TimedRobot {
   private double shooterKI = 0.0;
   private double shooterTargetRPM = 0.0;
   private double shooterTargetRPM_Unitsper100ms = 0.0;
+  private ShuffleboardTab tab = Shuffleboard.getTab("drive");
+  
+  private NetworkTableEntry shooterTargetRPMNT = tab.add("Target RPM",500).getEntry();
+  private NetworkTableEntry shooterKPNT = tab.add("KP",.0015).getEntry();
+  private NetworkTableEntry shooterKFNT = tab.add("KF",.047).getEntry();
+  private NetworkTableEntry shooterKINT = tab.add("KI",.00002 ).getEntry();
+  
+  // shooterKF = 0.047;
+  // shooterKP = 0.0015;
+  // shooterKI = 0.00002;
   //private final I2C.Port i2cPort = I2C.Port.kOnboard;
   //private final ColorSensorV3 m_colorSensor = new ColorSensorV3(i2cPort);
 
@@ -132,7 +147,7 @@ public class Robot extends TimedRobot {
     // Set sense of master motor output, and follower motor to be the opposite
     feederMotor1.setInverted(true);
     feederMotor2.follow(feederMotor1);
-    feederMotor2.setInverted(InvertType.OpposeMaster);
+    feederMotor2.setInverted(InvertType.FollowMaster);
 
     // Set sense of master motor output, and follower motor to be the opposite
     intakeMotor.setInverted(false);
@@ -210,6 +225,9 @@ public class Robot extends TimedRobot {
     //shooterFalcon1.config_kP(0,0.04,0);
     //shooterFalcon1.config_kI(0,0.0,0);
     //shooterFalcon1.config_kD(0,1.0,0);
+    
+    // Set the network table to update faster
+    NetworkTableInstance.getDefault().setUpdateRate(0.02);
   }
 
   /**
@@ -243,7 +261,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("left stick:", leftStick);
     SmartDashboard.putNumber("right stick:", rightStick);
 
-    shooterTargetRPM = SmartDashboard.getNumber("Shooter RPM", 6000);
+    shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
     //shooterKF = SmartDashboard.getNumber("KF", 0.046);
     //shooterKP = SmartDashboard.getNumber("KP", 0.01);
     SmartDashboard.putNumber("Shooter KF Feedback", shooterKF);
@@ -315,13 +333,13 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("left stick:", leftStick);
     SmartDashboard.putNumber("right stick:", rightStick);
 
-    shooterTargetRPM = SmartDashboard.getNumber("Shooter RPM", 500);
+    shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
     //shooterKF = SmartDashboard.getNumber("KF", 0.05);
   
+    shooterKF = shooterKFNT.getDouble(.047);
+    shooterKP = shooterKPNT.getDouble(.0015);
+    shooterKI = shooterKINT.getDouble(.00002);
     //shooterKP = SmartDashboard.getNumber("KP", 0.00058);
-    shooterKF = 0.047;
-    shooterKP = 0.0015;
-    shooterKI = 0.00002;
     SmartDashboard.putNumber("Shooter KF Feedback", shooterKF);
     SmartDashboard.putNumber("Shooter KP Feedback", shooterKP);
     SmartDashboard.putNumber("Shooter RPM Feedback", shooterTargetRPM);
@@ -362,6 +380,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
+
   }
 
   public void readTalonsAndShowValues() {
@@ -376,31 +395,31 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("targetRPM:", targetFalconRPM);
     SmartDashboard.putNumber("targetUp100ms:", targetRPM_UnitsPer100ms);
 
-    leftTopVelocity = leftTop.getSelectedSensorVelocity(0);
-    leftMiddleVelocity = leftMiddle.getSelectedSensorVelocity(0);
-    leftBottomVelocity = leftBottom.getSelectedSensorVelocity(0);
-    SmartDashboard.putNumber("leftTopVel:", leftTopVelocity);
-    SmartDashboard.putNumber("leftMidVel:", leftMiddleVelocity);
-    SmartDashboard.putNumber("leftBotVel:", leftBottomVelocity);
-    rightTopVelocity = rightTop.getSelectedSensorVelocity(0);
-    rightMiddleVelocity = rightMiddle.getSelectedSensorVelocity(0);
-    rightBottomVelocity = rightBottom.getSelectedSensorVelocity(0);
-    SmartDashboard.putNumber("rightTopVel:", rightTopVelocity);
-    SmartDashboard.putNumber("rightMidVel:", rightMiddleVelocity);
-    SmartDashboard.putNumber("rightBotVel:", rightBottomVelocity);
+    // leftTopVelocity = leftTop.getSelectedSensorVelocity(0);
+    // leftMiddleVelocity = leftMiddle.getSelectedSensorVelocity(0);
+    // leftBottomVelocity = leftBottom.getSelectedSensorVelocity(0);
+    // SmartDashboard.putNumber("leftTopVel:", leftTopVelocity);
+    // SmartDashboard.putNumber("leftMidVel:", leftMiddleVelocity);
+    // SmartDashboard.putNumber("leftBotVel:", leftBottomVelocity);
+    // rightTopVelocity = rightTop.getSelectedSensorVelocity(0);
+    // rightMiddleVelocity = rightMiddle.getSelectedSensorVelocity(0);
+    // rightBottomVelocity = rightBottom.getSelectedSensorVelocity(0);
+    // SmartDashboard.putNumber("rightTopVel:", rightTopVelocity);
+    // SmartDashboard.putNumber("rightMidVel:", rightMiddleVelocity);
+    // SmartDashboard.putNumber("rightBotVel:", rightBottomVelocity);
 
-    leftTopDistance = leftTop.getSelectedSensorPosition(0);
-    leftMiddleDistance = leftMiddle.getSelectedSensorPosition(0);
-    leftBottomDistance = leftBottom.getSelectedSensorPosition(0);
-    SmartDashboard.putNumber("leftTopPos:", leftTopDistance);
-    SmartDashboard.putNumber("leftMidPos:", leftMiddleDistance);
-    SmartDashboard.putNumber("leftBotPos:", leftBottomDistance);
-    rightTopDistance = rightTop.getSelectedSensorPosition(0);
-    rightMiddleDistance = rightMiddle.getSelectedSensorPosition(0);
-    rightBottomDistance = rightBottom.getSelectedSensorPosition(0);
-    SmartDashboard.putNumber("rightTopPos:", rightTopDistance);
-    SmartDashboard.putNumber("rightMidPos:", rightMiddleDistance);
-    SmartDashboard.putNumber("rightBotPos%:", rightBottomDistance);
+    // leftTopDistance = leftTop.getSelectedSensorPosition(0);
+    // leftMiddleDistance = leftMiddle.getSelectedSensorPosition(0);
+    // leftBottomDistance = leftBottom.getSelectedSensorPosition(0);
+    // SmartDashboard.putNumber("leftTopPos:", leftTopDistance);
+    // SmartDashboard.putNumber("leftMidPos:", leftMiddleDistance);
+    // SmartDashboard.putNumber("leftBotPos:", leftBottomDistance);
+    // rightTopDistance = rightTop.getSelectedSensorPosition(0);
+    // rightMiddleDistance = rightMiddle.getSelectedSensorPosition(0);
+    // rightBottomDistance = rightBottom.getSelectedSensorPosition(0);
+    // SmartDashboard.putNumber("rightTopPos:", rightTopDistance);
+    // SmartDashboard.putNumber("rightMidPos:", rightMiddleDistance);
+    // SmartDashboard.putNumber("rightBotPos%:", rightBottomDistance);
 
     //SmartDashboard.putNumber("left distance:", leftDistance);
     //SmartDashboard.putNumber("left velocity:", leftVelocity);
@@ -416,7 +435,7 @@ public class Robot extends TimedRobot {
     /* Display 6-axis Processed Angle Data */
     //SmartDashboard.putBoolean("IMU_Connected", ahrs.isConnected());
     //SmartDashboard.putBoolean("IMU_IsCalibrating", ahrs.isCalibrating());
-    SmartDashboard.putNumber("IMU_Yaw", ahrs.getYaw());
+    //SmartDashboard.putNumber("IMU_Yaw", ahrs.getYaw());
     //SmartDashboard.putNumber("IMU_Pitch", ahrs.getPitch());
     //SmartDashboard.putNumber("IMU_Roll", ahrs.getRoll());
 
@@ -431,7 +450,7 @@ public class Robot extends TimedRobot {
     /* These functions are compatible w/the WPI Gyro Class, providing a simple */
     /* path for upgrading from the Kit-of-Parts gyro to the navx MXP */
 
-    SmartDashboard.putNumber("IMU_TotalYaw", ahrs.getAngle());
+    //SmartDashboard.putNumber("IMU_TotalYaw", ahrs.getAngle());
     //SmartDashboard.putNumber("IMU_YawRateDPS", ahrs.getRate());
 
     /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
