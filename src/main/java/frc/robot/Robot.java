@@ -55,7 +55,7 @@ public class Robot extends TimedRobot {
   private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(8);
   private WPI_TalonSRX feederMotor2 = new WPI_TalonSRX(9);
 
-  private WPI_TalonSRX intakeMotor = new WPI_TalonSRX(10);
+  private WPI_TalonSRX intakeMotor = new WPI_TalonSRX(11);
   
   private final Joystick m_stick = new Joystick(0);
   //public static Solenoid solenoid1 = new Solenoid(7);
@@ -98,14 +98,17 @@ public class Robot extends TimedRobot {
   private double shooterKP = 0.0;
   private double shooterKI = 0.0;
   private double shooterTargetRPM = 0.0;
+  private double feederPercentReq = 0.0;
   private double shooterTargetRPM_Unitsper100ms = 0.0;
   private ShuffleboardTab tab = Shuffleboard.getTab("drive");
   
   private NetworkTableEntry shooterTargetRPMNT = tab.add("Target RPM",500).getEntry();
+  private NetworkTableEntry feederPercentReqNT = tab.add("Feeder % req",0.7).getEntry();
   private NetworkTableEntry shooterKPNT = tab.add("KP",.0015).getEntry();
   private NetworkTableEntry shooterKFNT = tab.add("KF",.047).getEntry();
   private NetworkTableEntry shooterKINT = tab.add("KI",.00002 ).getEntry();
   
+  boolean test_falcon_pressed = false;
   // shooterKF = 0.047;
   // shooterKP = 0.0015;
   // shooterKI = 0.00002;
@@ -254,6 +257,7 @@ public class Robot extends TimedRobot {
   /**
    * This function is called periodically during teleoperated mode.
    */
+  // 4300 from init line
   @Override
   public void teleopPeriodic() {
     leftStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kY.value);
@@ -264,6 +268,10 @@ public class Robot extends TimedRobot {
     shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
     //shooterKF = SmartDashboard.getNumber("KF", 0.046);
     //shooterKP = SmartDashboard.getNumber("KP", 0.01);
+
+    feederPercentReq = feederPercentReqNT.getDouble(0.7);
+    SmartDashboard.putNumber("feedPercentReqFB:", feederPercentReq);
+
     SmartDashboard.putNumber("Shooter KF Feedback", shooterKF);
     SmartDashboard.putNumber("Shooter KP Feedback", shooterKP);
     SmartDashboard.putNumber("Shooter RPM Feedback", shooterTargetRPM);
@@ -281,11 +289,24 @@ public class Robot extends TimedRobot {
     }
     // Read right bumper, if pressed pass left stick to shooter talons, and don't drive
     // the drive train.
-    boolean test_falcon_pressed = m_stick.getRawButton(6);
+    if (m_stick.getRawButtonPressed(6))
+      test_falcon_pressed = !test_falcon_pressed;
+ 
+    // Read left bumper, if pressed pass left stick to shooter talons, and don't drive
+    // the drive train.
+    // Read left bumper, if pressed reset NavX yaw value.
+
+    boolean feeder_run_pressed = m_stick.getRawButton(5);
+    if (feeder_run_pressed) {
+      feederMotor1.set(ControlMode.PercentOutput, feederPercentReq);
+  } else {
+      feederMotor1.set(ControlMode.PercentOutput, 0.0);
+  }
+
     if (test_falcon_pressed) {
        shooterFalcon1.set(ControlMode.Velocity, shooterTargetRPM_Unitsper100ms);
        //shooterFalcon2.set(ControlMode.PercentOutput, leftStick);
-       feederMotor1.set(ControlMode.PercentOutput, rightStick);
+       //feederMotor1.set(ControlMode.PercentOutput, rightStick);
        // shooterFalcon2, will just follow falcon1 with the opposite direction. 
 
        // Put some code to run shooter to a set velocity later.
@@ -300,14 +321,20 @@ public class Robot extends TimedRobot {
     } else { // button not pressed, use thumbsticks for drivetrain
       shooterFalcon1.set(ControlMode.PercentOutput, 0.0);
       //shooterFalcon2.set(ControlMode.PercentOutput, leftStick);
-      feederMotor1.set(ControlMode.PercentOutput, 0.0);
+      //feederMotor1.set(ControlMode.PercentOutput, 0.0);
 
-      leftTop.set(ControlMode.PercentOutput, leftStick);
-      leftMiddle.set(ControlMode.PercentOutput, leftStick);
-      leftBottom.set(ControlMode.PercentOutput, leftStick);
-      rightTop.set(ControlMode.PercentOutput, rightStick);
-      rightMiddle.set(ControlMode.PercentOutput, rightStick);
-      rightBottom.set(ControlMode.PercentOutput, rightStick);
+      // leftTop.set(ControlMode.PercentOutput, leftStick);
+      // leftMiddle.set(ControlMode.PercentOutput, leftStick);
+      // leftBottom.set(ControlMode.PercentOutput, leftStick);
+      // rightTop.set(ControlMode.PercentOutput, rightStick);
+      // rightMiddle.set(ControlMode.PercentOutput, rightStick);
+      // rightBottom.set(ControlMode.PercentOutput, rightStick);
+      leftTop.set(ControlMode.PercentOutput, 0.0);
+      leftMiddle.set(ControlMode.PercentOutput, 0.0);
+      leftBottom.set(ControlMode.PercentOutput, 0.0);
+      rightTop.set(ControlMode.PercentOutput, 0.0);
+      rightMiddle.set(ControlMode.PercentOutput, 0.0);
+      rightBottom.set(ControlMode.PercentOutput, 0.0);
     }
 
     // Read Talon Sensors and display values
@@ -315,9 +342,9 @@ public class Robot extends TimedRobot {
 
     // Read left bumper, if pressed reset NavX yaw value.
     boolean zero_yaw_pressed = m_stick.getRawButton(5);
-    if (zero_yaw_pressed) {
-      ahrs.zeroYaw();
-    }
+    //if (zero_yaw_pressed) {
+      //ahrs.zeroYaw();
+    //}
     // Read NavX and display values
     readNavxAndShowValues();
 
@@ -334,6 +361,10 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("right stick:", rightStick);
 
     shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
+
+    feederPercentReq = feederPercentReqNT.getDouble(0.7);
+    SmartDashboard.putNumber("feedPercentReqFB:", feederPercentReq);
+
     //shooterKF = SmartDashboard.getNumber("KF", 0.05);
   
     shooterKF = shooterKFNT.getDouble(.047);
