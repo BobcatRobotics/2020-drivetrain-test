@@ -52,8 +52,8 @@ public class Robot extends TimedRobot {
   private WPI_TalonFX shooterFalcon1 = new WPI_TalonFX(13);
   private WPI_TalonFX shooterFalcon2 = new WPI_TalonFX(14);
 
-  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(8);
-  private WPI_TalonSRX feederMotor2 = new WPI_TalonSRX(9);
+  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(7);
+  private WPI_TalonSRX feederMotor2 = new WPI_TalonSRX(8);
 
   private WPI_TalonSRX intakeMotor = new WPI_TalonSRX(11);
   
@@ -97,6 +97,7 @@ public class Robot extends TimedRobot {
   private double shooterKF = 0.0;
   private double shooterKP = 0.0;
   private double shooterKI = 0.0;
+  private double shooterIZONE = 0;
   private double shooterTargetRPM = 0.0;
   private double feederPercentReq = 0.0;
   private double shooterTargetRPM_Unitsper100ms = 0.0;
@@ -107,6 +108,7 @@ public class Robot extends TimedRobot {
   private NetworkTableEntry shooterKPNT = tab.add("KP",.0015).getEntry();
   private NetworkTableEntry shooterKFNT = tab.add("KF",.047).getEntry();
   private NetworkTableEntry shooterKINT = tab.add("KI",.00002 ).getEntry();
+  private NetworkTableEntry shooterIZoneNT = tab.add("IZONE",3.413).getEntry();
   
   boolean test_falcon_pressed = false;
   // shooterKF = 0.047;
@@ -156,9 +158,9 @@ public class Robot extends TimedRobot {
     intakeMotor.setInverted(false);
 
     // Set voltage compensation to keep things consistent as battery discharges
-    shooterFalcon1.configVoltageCompSaturation(11);
+    shooterFalcon1.configVoltageCompSaturation(12);
     shooterFalcon1.enableVoltageCompensation(false);
-    shooterFalcon2.configVoltageCompSaturation(11);
+    shooterFalcon2.configVoltageCompSaturation(12);
     shooterFalcon2.enableVoltageCompensation(false);
     
     leftTop.configVoltageCompSaturation(11);
@@ -370,6 +372,7 @@ public class Robot extends TimedRobot {
     shooterKF = shooterKFNT.getDouble(.047);
     shooterKP = shooterKPNT.getDouble(.0015);
     shooterKI = shooterKINT.getDouble(.00002);
+    shooterIZONE = shooterIZoneNT.getDouble(3.413);
     //shooterKP = SmartDashboard.getNumber("KP", 0.00058);
     SmartDashboard.putNumber("Shooter KF Feedback", shooterKF);
     SmartDashboard.putNumber("Shooter KP Feedback", shooterKP);
@@ -385,6 +388,7 @@ public class Robot extends TimedRobot {
     shooterFalcon1.config_kF(0,shooterKF,0);
     shooterFalcon1.config_kP(0,shooterKP,0);
     shooterFalcon1.config_kI(0,shooterKI,0);
+    shooterFalcon1.config_IntegralZone(0, (int)shooterIZONE,0);
     shooterFalcon1.config_kD(0,0.0,0);
 
     if (leftStick < -0.5) {
@@ -461,6 +465,9 @@ public class Robot extends TimedRobot {
     //SmartDashboard.putNumber("shooterFalcon2 distance:", shooterFalcon2Distance);
     SmartDashboard.putNumber("shooterFalcon2 velocity:", shooterFalcon2Velocity);
   }
+
+
+  //FAR TRENCH 5000
 
   public void readNavxAndShowValues() {
     /* Display 6-axis Processed Angle Data */
