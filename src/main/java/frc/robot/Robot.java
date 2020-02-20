@@ -51,6 +51,8 @@ public class Robot extends TimedRobot {
 
   private WPI_TalonFX shooterFalcon1 = new WPI_TalonFX(13);
   private WPI_TalonFX shooterFalcon2 = new WPI_TalonFX(14);
+  
+  private WPI_TalonFX lowerTowerFalcon = new WPI_TalonFX(12);
 
   private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(7);
   private WPI_TalonSRX feederMotor2 = new WPI_TalonSRX(8);
@@ -85,6 +87,8 @@ public class Robot extends TimedRobot {
   private double shooter2RPM;
   private double shooterFalcon2Distance = 0.0;
   private double shooterFalcon2Velocity = 0.0;
+  private double lowerTowerFalconRPM = 0.0;
+  private double lowerTowerTargerRPM_Unitsper100ms;
 
   private double flipStick=-1.0; // +1 or -1
   private double scaleStick=1.0; // between 0.0 and 1.0
@@ -105,6 +109,7 @@ public class Robot extends TimedRobot {
   
   private NetworkTableEntry shooterTargetRPMNT = tab.add("Target RPM",500).getEntry();
   private NetworkTableEntry feederPercentReqNT = tab.add("Feeder % req",0.7).getEntry();
+  private NetworkTableEntry lowerTowerRPMNT = tab.add("LowerTowerRPM",5000).getEntry();
   private NetworkTableEntry shooterKPNT = tab.add("KP",.0015).getEntry();
   private NetworkTableEntry shooterKFNT = tab.add("KF",.047).getEntry();
   private NetworkTableEntry shooterKINT = tab.add("KI",.00002 ).getEntry();
@@ -127,6 +132,7 @@ public class Robot extends TimedRobot {
     // Initialize Falcons to Factory Default
     shooterFalcon1.configFactoryDefault();
     shooterFalcon2.configFactoryDefault();
+    lowerTowerFalcon.configFactoryDefault();
     // Initialize feeder motor controllers to factory default
     feederMotor1.configFactoryDefault();
     feederMotor2.configFactoryDefault();
@@ -162,6 +168,8 @@ public class Robot extends TimedRobot {
     shooterFalcon1.enableVoltageCompensation(false);
     shooterFalcon2.configVoltageCompSaturation(12);
     shooterFalcon2.enableVoltageCompensation(false);
+    lowerTowerFalcon.configVoltageCompSaturation(12);
+    lowerTowerFalcon.enableVoltageCompensation(false);
     
     leftTop.configVoltageCompSaturation(11);
     leftTop.enableVoltageCompensation(true);
@@ -197,6 +205,10 @@ public class Robot extends TimedRobot {
     shooterFalcon2.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor,0,0);
     shooterFalcon2.setSelectedSensorPosition(0,0,0);
     shooterFalcon2.setSensorPhase(false);
+        
+    lowerTowerFalcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor,0,0);
+    lowerTowerFalcon.setSelectedSensorPosition(0,0,0);
+    lowerTowerFalcon.setSensorPhase(false);
 
     leftTop.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor,0,0);
     leftTop.setSelectedSensorPosition(0,0,0);
@@ -279,7 +291,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Shooter RPM Feedback", shooterTargetRPM);
 
     shooterTargetRPM_Unitsper100ms = shooterTargetRPM / 600 * 2048;
-
+    lowerTowerTargerRPM_Unitsper100ms = lowerTowerFalconRPM /600 *2048;
     targetRPM_UnitsPer100ms = targetFalconRPM * 2048.0/600.0;
 
     // Read the B button, and if pressed run intake motor
@@ -307,6 +319,7 @@ public class Robot extends TimedRobot {
 
     if (test_falcon_pressed) {
        shooterFalcon1.set(ControlMode.Velocity, shooterTargetRPM_Unitsper100ms);
+       lowerTowerFalcon.set(ControlMode.Velocity, lowerTowerTargerRPM_Unitsper100ms);
        //shooterFalcon2.set(ControlMode.PercentOutput, leftStick);
        //feederMotor1.set(ControlMode.PercentOutput, rightStick);
        // shooterFalcon2, will just follow falcon1 with the opposite direction. 
@@ -363,6 +376,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("right stick:", rightStick);
 
     shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
+    lowerTowerFalconRPM = lowerTowerRPMNT.getDouble(5000);
 
     feederPercentReq = feederPercentReqNT.getDouble(0.7);
     SmartDashboard.putNumber("feedPercentReqFB:", feederPercentReq);
@@ -423,12 +437,16 @@ public class Robot extends TimedRobot {
     shooterFalcon1Velocity = shooterFalcon1.getSelectedSensorVelocity(0);
     shooterFalcon2Distance = shooterFalcon2.getSelectedSensorPosition(0);
     shooterFalcon2Velocity = shooterFalcon2.getSelectedSensorVelocity(0);
+    
     shooter1RPM = shooterFalcon1Velocity * 600.0 / 2048.0; 
     shooter2RPM = shooterFalcon2Velocity * 600.0 / 2048.0;
+    lowerTowerFalconRPM = lowerTowerFalcon.getSelectedSensorVelocity() *600.0 / 2048;
+
     SmartDashboard.putNumber("shooter1RPM:", shooter1RPM);
     SmartDashboard.putNumber("shooter2RPM:", shooter2RPM);
     SmartDashboard.putNumber("targetRPM:", targetFalconRPM);
     SmartDashboard.putNumber("targetUp100ms:", targetRPM_UnitsPer100ms);
+    SmartDashboard.putNumber("S-Tower falcon",lowerTowerFalconRPM);
 
     // leftTopVelocity = leftTop.getSelectedSensorVelocity(0);
     // leftMiddleVelocity = leftMiddle.getSelectedSensorVelocity(0);
