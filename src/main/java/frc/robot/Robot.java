@@ -49,15 +49,17 @@ public class Robot extends TimedRobot {
   private WPI_TalonFX rightMiddle = new WPI_TalonFX(4);
   private WPI_TalonFX rightBottom = new WPI_TalonFX(5);
 
+  private WPI_TalonFX lowerTowerFalcon = new WPI_TalonFX(12);
+
   private WPI_TalonFX shooterFalcon1 = new WPI_TalonFX(13);
   private WPI_TalonFX shooterFalcon2 = new WPI_TalonFX(14);
   
-  private WPI_TalonFX lowerTowerFalcon = new WPI_TalonFX(12);
 
-  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(7);
-  private WPI_TalonSRX feederMotor2 = new WPI_TalonSRX(8);
+  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(8);
 
-  private WPI_TalonSRX intakeMotor = new WPI_TalonSRX(11);
+  private WPI_TalonSRX intakeBarMotor = new WPI_TalonSRX(6);
+
+  private WPI_TalonSRX funnelTalon = new WPI_TalonSRX(7);
   
   private final Joystick m_stick = new Joystick(0);
   //public static Solenoid solenoid1 = new Solenoid(7);
@@ -88,12 +90,14 @@ public class Robot extends TimedRobot {
   private double shooterFalcon2Distance = 0.0;
   private double shooterFalcon2Velocity = 0.0;
   private double lowerTowerFalconRPM = 0.0;
-  private double lowerTowerTargerRPM_Unitsper100ms;
+  private double lowerTowerFalconRPMFB = 0.0;
+  private double lowerTowerTargetRPM_Unitsper100ms;
 
   private double flipStick=-1.0; // +1 or -1
   private double scaleStick=1.0; // between 0.0 and 1.0
 
   private double intakeSpeed = 0.8;
+  private double funnelSpeed = 0.8;
 
   private AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
@@ -135,9 +139,10 @@ public class Robot extends TimedRobot {
     lowerTowerFalcon.configFactoryDefault();
     // Initialize feeder motor controllers to factory default
     feederMotor1.configFactoryDefault();
-    feederMotor2.configFactoryDefault();
+    //feederMotor2.configFactoryDefault();
 
-    intakeMotor.configFactoryDefault();
+    intakeBarMotor.configFactoryDefault();
+    funnelTalon.configFactoryDefault();
     
     leftTop.configFactoryDefault();
     leftMiddle.configFactoryDefault();
@@ -154,14 +159,15 @@ public class Robot extends TimedRobot {
     shooterFalcon1.setInverted(true);
     shooterFalcon2.setInverted(InvertType.OpposeMaster);
     //shooterFalcon2.setInverted(false);
+    lowerTowerFalcon.setInverted(true);
+    // Set sense of master motor output, and follower motor to be the opposite
+    feederMotor1.setInverted(false);
+   // feederMotor2.follow(feederMotor1);
+   // feederMotor2.setInverted(InvertType.FollowMaster);
 
     // Set sense of master motor output, and follower motor to be the opposite
-    feederMotor1.setInverted(true);
-    feederMotor2.follow(feederMotor1);
-    feederMotor2.setInverted(InvertType.FollowMaster);
-
-    // Set sense of master motor output, and follower motor to be the opposite
-    intakeMotor.setInverted(false);
+    intakeBarMotor.setInverted(false);
+    funnelTalon.setInverted(false);
 
     // Set voltage compensation to keep things consistent as battery discharges
     shooterFalcon1.configVoltageCompSaturation(12);
@@ -291,15 +297,20 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Shooter RPM Feedback", shooterTargetRPM);
 
     shooterTargetRPM_Unitsper100ms = shooterTargetRPM / 600 * 2048;
-    lowerTowerTargerRPM_Unitsper100ms = lowerTowerFalconRPM /600 *2048;
+    lowerTowerTargetRPM_Unitsper100ms = lowerTowerFalconRPMFB /600 * 2048;
     targetRPM_UnitsPer100ms = targetFalconRPM * 2048.0/600.0;
 
+    SmartDashboard.putNumber("LT RPM Feedback", lowerTowerFalconRPM);
     // Read the B button, and if pressed run intake motor
     boolean testIntakePressed = m_stick.getRawButton(3);
     if (testIntakePressed) {
-      intakeMotor.set(ControlMode.PercentOutput, intakeSpeed);
+      intakeBarMotor.set(ControlMode.PercentOutput, intakeSpeed);
+      funnelTalon.set(ControlMode.PercentOutput, funnelSpeed);
+      lowerTowerFalcon.set(ControlMode.Velocity, lowerTowerTargetRPM_Unitsper100ms);
     } else {
-      intakeMotor.set(ControlMode.PercentOutput, 0.0);
+      intakeBarMotor.set(ControlMode.PercentOutput, 0.0);
+      funnelTalon.set(ControlMode.PercentOutput, 0.0);
+      lowerTowerFalcon.set(ControlMode.PercentOutput, 0.0);
     }
     // Read right bumper, if pressed pass left stick to shooter talons, and don't drive
     // the drive train.
@@ -319,7 +330,6 @@ public class Robot extends TimedRobot {
 
     if (test_falcon_pressed) {
        shooterFalcon1.set(ControlMode.Velocity, shooterTargetRPM_Unitsper100ms);
-       lowerTowerFalcon.set(ControlMode.Velocity, lowerTowerTargerRPM_Unitsper100ms);
        //shooterFalcon2.set(ControlMode.PercentOutput, leftStick);
        //feederMotor1.set(ControlMode.PercentOutput, rightStick);
        // shooterFalcon2, will just follow falcon1 with the opposite direction. 
@@ -376,7 +386,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("right stick:", rightStick);
 
     shooterTargetRPM = shooterTargetRPMNT.getDouble(2500);
-    lowerTowerFalconRPM = lowerTowerRPMNT.getDouble(5000);
+    lowerTowerFalconRPMFB = lowerTowerRPMNT.getDouble(5000);
 
     feederPercentReq = feederPercentReqNT.getDouble(0.7);
     SmartDashboard.putNumber("feedPercentReqFB:", feederPercentReq);
@@ -391,6 +401,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Shooter KF Feedback", shooterKF);
     SmartDashboard.putNumber("Shooter KP Feedback", shooterKP);
     SmartDashboard.putNumber("Shooter RPM Feedback", shooterTargetRPM);
+    SmartDashboard.putNumber("LT RPM Feedback", lowerTowerFalconRPMFB);
 
     //Config the peak and nominal outputs
     shooterFalcon1.configNominalOutputForward(0,0);
@@ -404,6 +415,12 @@ public class Robot extends TimedRobot {
     shooterFalcon1.config_kI(0,shooterKI,0);
     shooterFalcon1.config_IntegralZone(0, (int)shooterIZONE,0);
     shooterFalcon1.config_kD(0,0.0,0);
+
+    lowerTowerFalcon.config_kF(0,shooterKF,0);
+    lowerTowerFalcon.config_kP(0,shooterKP,0);
+    lowerTowerFalcon.config_kI(0,shooterKI,0);
+    lowerTowerFalcon.config_IntegralZone(0, (int)shooterIZONE,0);
+    lowerTowerFalcon.config_kD(0,0.0,0);
 
     if (leftStick < -0.5) {
       targetFalconRPM = 500.0;
