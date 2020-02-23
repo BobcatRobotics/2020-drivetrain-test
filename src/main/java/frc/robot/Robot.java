@@ -55,11 +55,13 @@ public class Robot extends TimedRobot {
   private WPI_TalonFX shooterFalcon2 = new WPI_TalonFX(14);
   
 
-  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(8);
+  private WPI_TalonSRX feederMotor1 = new WPI_TalonSRX(11);
 
-  private WPI_TalonSRX intakeBarMotor = new WPI_TalonSRX(6);
+  private WPI_TalonSRX intakeBarMotor = new WPI_TalonSRX(9);
 
-  private WPI_TalonSRX funnelTalon = new WPI_TalonSRX(7);
+  private WPI_TalonSRX funnelTalon = new WPI_TalonSRX(6);
+  
+  private WPI_TalonSRX winchMotor = new WPI_TalonSRX(8);
   
   private final Joystick m_stick = new Joystick(0);
   //public static Solenoid solenoid1 = new Solenoid(7);
@@ -143,6 +145,7 @@ public class Robot extends TimedRobot {
 
     intakeBarMotor.configFactoryDefault();
     funnelTalon.configFactoryDefault();
+    winchMotor.configFactoryDefault();
     
     leftTop.configFactoryDefault();
     leftMiddle.configFactoryDefault();
@@ -168,6 +171,7 @@ public class Robot extends TimedRobot {
     // Set sense of master motor output, and follower motor to be the opposite
     intakeBarMotor.setInverted(false);
     funnelTalon.setInverted(false);
+    winchMotor.setInverted(false);
 
     // Set voltage compensation to keep things consistent as battery discharges
     shooterFalcon1.configVoltageCompSaturation(12);
@@ -303,17 +307,30 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("LT RPM Feedback", lowerTowerFalconRPM);
     // Read the B button, and if pressed run intake motor
     boolean testIntakePressed = m_stick.getRawButton(3);
+
+    boolean winchPressed = m_stick.getRawButton(1);
+
+    //B button
     if (testIntakePressed) {
-      intakeBarMotor.set(ControlMode.PercentOutput, intakeSpeed);
-      funnelTalon.set(ControlMode.PercentOutput, funnelSpeed);
+      intakeBarMotor.set(ControlMode.PercentOutput, -1 * intakeSpeed);
+      funnelTalon.set(ControlMode.PercentOutput, -1 * funnelSpeed);
       lowerTowerFalcon.set(ControlMode.Velocity, lowerTowerTargetRPM_Unitsper100ms);
     } else {
       intakeBarMotor.set(ControlMode.PercentOutput, 0.0);
       funnelTalon.set(ControlMode.PercentOutput, 0.0);
       lowerTowerFalcon.set(ControlMode.PercentOutput, 0.0);
     }
+
+    // X button
+    if(winchPressed){
+      winchMotor.set(ControlMode.PercentOutput,.50);
+    }
+    else{
+      
+      winchMotor.set(ControlMode.PercentOutput,0.0);
+    }
     // Read right bumper, if pressed pass left stick to shooter talons, and don't drive
-    // the drive train.
+    // the drive train.`
     if (m_stick.getRawButtonPressed(6))
       test_falcon_pressed = !test_falcon_pressed;
  
@@ -323,7 +340,7 @@ public class Robot extends TimedRobot {
 
     boolean feeder_run_pressed = m_stick.getRawButton(5);
     if (feeder_run_pressed) {
-      feederMotor1.set(ControlMode.PercentOutput, feederPercentReq);
+      feederMotor1.set(ControlMode.PercentOutput, -1 * feederPercentReq);
   } else {
       feederMotor1.set(ControlMode.PercentOutput, 0.0);
   }
@@ -354,12 +371,6 @@ public class Robot extends TimedRobot {
       rightTop.set(ControlMode.PercentOutput, rightStick);
       rightMiddle.set(ControlMode.PercentOutput, rightStick);
       rightBottom.set(ControlMode.PercentOutput, rightStick);
-      leftTop.set(ControlMode.PercentOutput, 0.0);
-      leftMiddle.set(ControlMode.PercentOutput, 0.0);
-      leftBottom.set(ControlMode.PercentOutput, 0.0);
-      rightTop.set(ControlMode.PercentOutput, 0.0);
-      rightMiddle.set(ControlMode.PercentOutput, 0.0);
-      rightBottom.set(ControlMode.PercentOutput, 0.0);
     }
 
     // Read Talon Sensors and display values
