@@ -63,7 +63,9 @@ public class Robot extends TimedRobot {
   
   private WPI_TalonSRX winchMotor = new WPI_TalonSRX(8);
   
-  private final Joystick m_stick = new Joystick(0);
+  private final Joystick m_stick = new Joystick(2);
+  private final Joystick leftJoyStick = new Joystick(0);
+  private final Joystick rightJoyStick = new Joystick(1);
   //public static Solenoid solenoid1 = new Solenoid(7);
   private double leftStick = 0.0;
   private double rightStick = 0.0;
@@ -82,6 +84,8 @@ public class Robot extends TimedRobot {
   private double leftBottomDistance = 0.0;
   private double rightBottomDistance = 0.0;
   private double rightBottomVelocity = 0.0;
+
+  private double deadBandLimit = 0.0;
 
   private double targetFalconRPM = 0.0;
   private double targetRPM_UnitsPer100ms;
@@ -182,23 +186,23 @@ public class Robot extends TimedRobot {
     lowerTowerFalcon.enableVoltageCompensation(false);
     
     leftTop.configVoltageCompSaturation(11);
-    leftTop.enableVoltageCompensation(true);
+    leftTop.enableVoltageCompensation(false);
     leftTop.setInverted(false);
     leftMiddle.configVoltageCompSaturation(11);
-    leftMiddle.enableVoltageCompensation(true);    
+    leftMiddle.enableVoltageCompensation(false);    
     leftMiddle.setInverted(false);
     leftBottom.configVoltageCompSaturation(11);
-    leftBottom.enableVoltageCompensation(true);
+    leftBottom.enableVoltageCompensation(false);
     leftBottom.setInverted(false);
 
     rightTop.configVoltageCompSaturation(11);
-    rightTop.enableVoltageCompensation(true);
+    rightTop.enableVoltageCompensation(false);
     rightTop.setInverted(true);
     rightMiddle.configVoltageCompSaturation(11);
-    rightMiddle.enableVoltageCompensation(true);
+    rightMiddle.enableVoltageCompensation(false);
     rightMiddle.setInverted(true);
     rightBottom.configVoltageCompSaturation(11);
-    rightBottom.enableVoltageCompensation(true);
+    rightBottom.enableVoltageCompensation(false);
     rightBottom.setInverted(true);
 
     // Should we try limiting current if we get stalled (a ball gets stuck in shooter?)
@@ -276,6 +280,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopInit() {
+    shooterFalcon1.set(ControlMode.Velocity, 0);
+    test_falcon_pressed = false;
   }
 
   /**
@@ -284,8 +290,42 @@ public class Robot extends TimedRobot {
   // 4300 from init line
   @Override
   public void teleopPeriodic() {
-    leftStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kY.value);
-    rightStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kTwist.value);
+    //leftStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kY.value);
+    //rightStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kTwist.value);
+    leftStick = flipStick*scaleStick*leftJoyStick.getRawAxis(Joystick.AxisType.kY.value);
+    rightStick = flipStick*scaleStick*rightJoyStick.getRawAxis(Joystick.AxisType.kY.value);
+
+    if (leftStick > 0) {
+      if (leftStick < deadBandLimit) {
+        leftStick = 0;
+      } else {
+        leftStick = (1/(1-deadBandLimit))*leftStick - deadBandLimit*(1/(1-deadBandLimit));
+      }
+    }
+    if (rightStick > 0) {
+      if (rightStick < deadBandLimit) {
+        rightStick = 0;
+      } else {
+        rightStick = (1/(1-deadBandLimit))*rightStick - deadBandLimit*(1/(1-deadBandLimit));
+      }
+    }
+    if (leftStick < 0) {
+      if (leftStick > -1 * deadBandLimit) {
+        leftStick = 0;
+      } else {
+        leftStick = (1/(1-deadBandLimit))*leftStick + deadBandLimit*(1/(1-deadBandLimit));
+      }
+    }
+    if (rightStick < 0) {
+      if (rightStick > -1 * deadBandLimit) {
+        rightStick = 0;
+      } else {
+        rightStick = (1/(1-deadBandLimit))*rightStick + deadBandLimit*(1/(1-deadBandLimit));
+      }
+    }
+
+
+
     SmartDashboard.putNumber("left stick:", leftStick);
     SmartDashboard.putNumber("right stick:", rightStick);
 
@@ -306,7 +346,9 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putNumber("LT RPM Feedback", lowerTowerFalconRPM);
     // Read the B button, and if pressed run intake motor
+    boolean intakeInPressed = m_stick.getRawButton(2);
     boolean testIntakePressed = m_stick.getRawButton(3);
+    boolean intakeOutPressed = m_stick.getRawButton(4);
 
     boolean winchPressed = m_stick.getRawButton(1);
 
@@ -319,6 +361,15 @@ public class Robot extends TimedRobot {
       intakeBarMotor.set(ControlMode.PercentOutput, 0.0);
       funnelTalon.set(ControlMode.PercentOutput, 0.0);
       lowerTowerFalcon.set(ControlMode.PercentOutput, 0.0);
+    }
+    if (intakeInPressed) {
+      intakeBarMotor.set(ControlMode.PercentOutput, -1 * intakeSpeed);
+    }
+    if (intakeOutPressed) {
+      intakeBarMotor.set(ControlMode.PercentOutput, intakeSpeed);
+    }
+    if (!intakeInPressed && !intakeOutPressed && !testIntakePressed){
+      intakeBarMotor.set(ControlMode.PercentOutput, 0.0);
     }
 
     // X button
@@ -354,25 +405,24 @@ public class Robot extends TimedRobot {
        // Put some code to run shooter to a set velocity later.
       //targetRPM_UnitsPer100ms = targetFalconRPM * 2048.0/600.0;
       //shooterFalcon1.set(ControlMode.Velocity, targetRPM_UnitsPer100ms); 
-       leftTop.set(ControlMode.PercentOutput, 0.0);
-       leftMiddle.set(ControlMode.PercentOutput, 0.0);
-       leftBottom.set(ControlMode.PercentOutput, 0.0);
-       rightTop.set(ControlMode.PercentOutput, 0.0);
-       rightMiddle.set(ControlMode.PercentOutput, 0.0);
-       rightBottom.set(ControlMode.PercentOutput, 0.0);
+      //  leftTop.set(ControlMode.PercentOutput, 0.0);
+      //  leftMiddle.set(ControlMode.PercentOutput, 0.0);
+      //  leftBottom.set(ControlMode.PercentOutput, 0.0);
+      //  rightTop.set(ControlMode.PercentOutput, 0.0);
+      //  rightMiddle.set(ControlMode.PercentOutput, 0.0);
+      //  rightBottom.set(ControlMode.PercentOutput, 0.0);
     } else { // button not pressed, use thumbsticks for drivetrain
       shooterFalcon1.set(ControlMode.PercentOutput, 0.0);
       //shooterFalcon2.set(ControlMode.PercentOutput, leftStick);
       //feederMotor1.set(ControlMode.PercentOutput, 0.0);
-
-      leftTop.set(ControlMode.PercentOutput, leftStick);
-      leftMiddle.set(ControlMode.PercentOutput, leftStick);
-      leftBottom.set(ControlMode.PercentOutput, leftStick);
-      rightTop.set(ControlMode.PercentOutput, rightStick);
-      rightMiddle.set(ControlMode.PercentOutput, rightStick);
-      rightBottom.set(ControlMode.PercentOutput, rightStick);
+      
     }
-
+    leftTop.set(ControlMode.PercentOutput, leftStick);
+    leftMiddle.set(ControlMode.PercentOutput, leftStick);
+    leftBottom.set(ControlMode.PercentOutput, leftStick);
+    rightTop.set(ControlMode.PercentOutput, rightStick);
+    rightMiddle.set(ControlMode.PercentOutput, rightStick);
+    rightBottom.set(ControlMode.PercentOutput, rightStick);
     // Read Talon Sensors and display values
     readTalonsAndShowValues();
 
@@ -391,6 +441,10 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void disabledPeriodic() {
+
+    shooterFalcon1.set(ControlMode.Velocity, 0);
+    test_falcon_pressed = false;
+
     leftStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kY.value);
     rightStick = flipStick*scaleStick*m_stick.getRawAxis(Joystick.AxisType.kTwist.value);
     SmartDashboard.putNumber("left stick:", leftStick);
@@ -433,11 +487,11 @@ public class Robot extends TimedRobot {
     lowerTowerFalcon.config_IntegralZone(0, (int)shooterIZONE,0);
     lowerTowerFalcon.config_kD(0,0.0,0);
 
-    if (leftStick < -0.5) {
-      targetFalconRPM = 500.0;
-    } else {
-      targetFalconRPM = 0.0;
-    }
+    //if (leftStick < -0.5) {
+    //  targetFalconRPM = 500.0;
+    //} else {
+    //  targetFalconRPM = 0.0;
+    //}
 
     // Read Talon Sensors and display values
     readTalonsAndShowValues();
