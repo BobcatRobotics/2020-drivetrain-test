@@ -20,6 +20,8 @@ import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 
+import edu.wpi.first.wpilibj.Solenoid;
+
 
 //import com.ctre.phoenix.motorcontrol.ControlMode;
 //import com.ctre.phoenix.motorcontrol.DemandType;
@@ -66,7 +68,7 @@ public class Robot extends TimedRobot {
   private final Joystick m_stick = new Joystick(2);
   private final Joystick leftJoyStick = new Joystick(0);
   private final Joystick rightJoyStick = new Joystick(1);
-  //public static Solenoid solenoid1 = new Solenoid(7);
+  private Solenoid intakeUpDown = new Solenoid(7);
   private double leftStick = 0.0;
   private double rightStick = 0.0;
 
@@ -352,6 +354,8 @@ public class Robot extends TimedRobot {
 
     boolean winchPressed = m_stick.getRawButton(1);
 
+    boolean intakeUpDownButtonPressed = m_stick.getRawButton(7);
+
     //B button
     if (testIntakePressed) {
       intakeBarMotor.set(ControlMode.PercentOutput, -1 * intakeSpeed);
@@ -372,6 +376,13 @@ public class Robot extends TimedRobot {
       intakeBarMotor.set(ControlMode.PercentOutput, 0.0);
     }
 
+    // Left Trigger
+    if (intakeUpDownButtonPressed) {
+      intakeUpDown.set(true);
+    } else {
+      intakeUpDown.set(false);
+    }
+    
     // X button
     if(winchPressed){
       winchMotor.set(ControlMode.PercentOutput,.50);
